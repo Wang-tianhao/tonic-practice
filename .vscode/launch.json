@@ -1,0 +1,119 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'helloworld-server'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=helloworld-server",
+                    "--package=helloworld-tonic"
+                ],
+                "filter": {
+                    "name": "helloworld-server",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'helloworld-server'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=helloworld-server",
+                    "--package=helloworld-tonic"
+                ],
+                "filter": {
+                    "name": "helloworld-server",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'helloworld-client'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=helloworld-client",
+                    "--package=helloworld-tonic"
+                ],
+                "filter": {
+                    "name": "helloworld-client",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'helloworld-client'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=helloworld-client",
+                    "--package=helloworld-tonic"
+                ],
+                "filter": {
+                    "name": "helloworld-client",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'helloworld-tonic'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=helloworld-tonic",
+                    "--package=helloworld-tonic"
+                ],
+                "filter": {
+                    "name": "helloworld-tonic",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'helloworld-tonic'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=helloworld-tonic",
+                    "--package=helloworld-tonic"
+                ],
+                "filter": {
+                    "name": "helloworld-tonic",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

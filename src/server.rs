@@ -1,11 +1,11 @@
 use std::pin::Pin;
 use std::sync::Arc;
-use tokio::sync::mpsc;
 use std::time::Instant;
-use tracing::info;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tokio::sync::mpsc;
 use tokio_stream::{wrappers::ReceiverStream, Stream, StreamExt};
 use tonic::{transport::Server, Request, Response, Status};
+use tracing::info;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use hello_world::greeter_server::{Greeter, GreeterServer};
 use hello_world::{Feature, HelloReply, HelloRequest, Point, Rectangle, RouteNote, RouteSummary};
@@ -26,7 +26,7 @@ impl Greeter for MyGreeter {
         request: Request<HelloRequest>, // Accept request of type HelloRequest
     ) -> Result<Response<HelloReply>, Status> {
         // Return an instance of type HelloReply
-        println!("Got a request: {:?}", request);
+        info!("Got a request: {:?}", request);
 
         let reply = hello_world::HelloReply {
             message: format!("Hello {}!", request.into_inner().name), // We must use .into_inner() as the fields of gRPC requests and responses are private
@@ -39,7 +39,7 @@ impl Greeter for MyGreeter {
         &self,
         request: Request<Rectangle>,
     ) -> Result<Response<Self::ListFeaturesStream>, Status> {
-        println!("ListFeatures = {:?}", request);
+        info!("ListFeatures = {:?}", request);
 
         let (tx, rx) = mpsc::channel(4);
         let features = self.features.clone();
@@ -47,12 +47,12 @@ impl Greeter for MyGreeter {
         tokio::spawn(async move {
             for feature in &features[..] {
                 if in_range(feature.location.as_ref().unwrap(), request.get_ref()) {
-                    println!("  => send {:?}", feature);
+                    info!("  => send {:?}", feature);
                     tx.send(Ok(feature.clone())).await.unwrap();
                 }
             }
 
-            println!(" /// done sending");
+            info!(" /// done sending");
         });
 
         Ok(Response::new(ReceiverStream::new(rx)))
@@ -89,7 +89,7 @@ impl Greeter for MyGreeter {
             summary.point_count += 1;
 
             // Find features
-            for feature in &self.features[..] {
+            for feature in self.features.iter() {
                 if feature.location.as_ref() == Some(&point) {
                     summary.feature_count += 1;
                 }
@@ -165,9 +165,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50051".parse()?;
     let greeter = MyGreeter::default();
     tracing_subscriber::registry()
-    .with(tracing_subscriber::EnvFilter::new("info"))
-    .with(tracing_subscriber::fmt::layer())
-    .init();
+        .with(tracing_subscriber::EnvFilter::new("info"))
+        .with(tracing_subscriber::fmt::layer())
+        .init();
     Server::builder()
         .add_service(GreeterServer::new(greeter))
         .serve(addr)

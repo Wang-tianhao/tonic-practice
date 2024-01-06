@@ -1,6 +1,8 @@
+use std::collections::HashMap;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Instant;
+use std::hash::{Hasher, Hash};
 use tokio::sync::mpsc;
 use tokio_stream::{wrappers::ReceiverStream, Stream, StreamExt};
 use tonic::{transport::Server, Request, Response, Status};
@@ -18,6 +20,16 @@ pub mod hello_world {
 pub struct MyGreeter {
     features: Arc<Vec<Feature>>,
 }
+impl Hash for Point {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        self.latitude.hash(state);
+        self.longitude.hash(state);
+    }
+}
+impl Eq for Point {}
 
 #[tonic::async_trait]
 impl Greeter for MyGreeter {
@@ -112,9 +124,29 @@ impl Greeter for MyGreeter {
 
     async fn route_chat(
         &self,
-        _request: Request<tonic::Streaming<RouteNote>>,
+        request: Request<tonic::Streaming<RouteNote>>,
     ) -> Result<Response<Self::RouteChatStream>, Status> {
-        unimplemented!()
+        info!("RouteChat");
+
+        let mut notes = HashMap::new();
+        let mut stream = request.into_inner();
+
+        let output = async_stream::try_stream! {
+            while let Some(note) = stream.next().await {
+                let note = note?;
+
+                let location = note.location.clone().unwrap();
+
+                let location_notes = notes.entry(location).or_insert(vec![]);
+                location_notes.push(note);
+
+                for note in location_notes {
+                    yield note.clone();
+                }
+            }
+        };
+
+        Ok(Response::new(Box::pin(output) as Self::RouteChatStream))
     }
 }
 

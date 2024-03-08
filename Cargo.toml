@@ -13,6 +13,33 @@ path = "src/server.rs"
 name = "helloworld-client"
 path = "src/client.rs"
 
+[profile.dev]
+opt-level = 0
+debug = true
+split-debuginfo = '...' # Platform-specific.
+debug-assertions = true
+overflow-checks = true
+lto = false
+panic = 'unwind'
+incremental = true
+codegen-units = 256
+rpath = false
+
+[profile.release]
+opt-level = 3
+debug = false
+split-debuginfo = '...'  # Platform-specific.
+debug-assertions = false
+overflow-checks = false
+lto = false
+panic = 'unwind'
+incremental = false
+codegen-units = 16
+rpath = false
+
+[workspace]
+members = ["prisma-cli"]
+
 [dependencies]
 tonic = "0.11"
 prost = "0.12"
@@ -25,6 +52,7 @@ serde_json = "1.0"
 rand = "0.8.5"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.10" }
 
 [build-dependencies]
 tonic-build = "0.11"

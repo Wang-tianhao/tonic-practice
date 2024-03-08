@@ -9,10 +9,10 @@ use tonic::{transport::Server, Request, Response, Status};
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-mod data;
 use hello_world::greeter_server::{Greeter, GreeterServer};
 use hello_world::{Feature, HelloReply, HelloRequest, Point, Rectangle, RouteNote, RouteSummary};
 
+mod data;
 pub mod hello_world {
     tonic::include_proto!("helloworld"); // The string specified here must match the proto package name
 }

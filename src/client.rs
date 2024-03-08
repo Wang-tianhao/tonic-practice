@@ -3,9 +3,9 @@ use hello_world::{Point, Rectangle, RouteNote};
 use rand::rngs::ThreadRng;
 use rand::Rng;
 use std::error::Error;
-use tonic::transport::Channel;
 use std::time::Duration;
 use tokio::time;
+use tonic::transport::Channel;
 pub mod hello_world {
     tonic::include_proto!("helloworld");
 }
@@ -13,7 +13,8 @@ pub mod hello_world {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let mut client = GreeterClient::connect("http://[::1]:50051").await?;
-    run_record_route(&mut client).await?;
+    run_route_chat(&mut client).await?;
+    // run_record_route(&mut client).await?;
     // let request = tonic::Request::new(Point {
     //     latitude: 409146138,
     //     longitude: -746188906,
@@ -86,18 +87,30 @@ async fn run_route_chat(client: &mut GreeterClient<Channel>) -> Result<(), Box<d
     let outbound = async_stream::stream! {
         let mut interval = time::interval(Duration::from_secs(1));
 
-        while let time = interval.tick().await {
+        loop {
+            let time = interval.tick().await;
             let elapsed = time.duration_since(start);
             let note = RouteNote {
                 location: Some(Point {
-                    latitude: 409146138 + elapsed.as_secs() as i32,
-                    longitude: -746188906,
+                    latitude: 12345 + elapsed.as_secs() as i32,
+                    longitude: -12345,
                 }),
                 message: format!("at {:?}", elapsed),
             };
-
             yield note;
         }
+        // while let time = interval.tick().await {
+        //     let elapsed = time.duration_since(start);
+        //     let note = RouteNote {
+        //         location: Some(Point {
+        //             latitude: 409146138 + elapsed.as_secs() as i32,
+        //             longitude: -746188906,
+        //         }),
+        //         message: format!("at {:?}", elapsed),
+        //     };
+
+        //     yield note;
+        // }
     };
 
     let response = client.route_chat(tonic::Request::new(outbound)).await?;

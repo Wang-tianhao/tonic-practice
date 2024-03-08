@@ -1,0 +1,19 @@
+generator client {
+  provider    = "cargo prisma"
+  output      = "../src/prisma.rs"
+  module_path = "generated::db"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Shorturl {
+  id        Int       @id @default(autoincrement())
+  shortUrl     String    @unique
+  originalUrl  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}

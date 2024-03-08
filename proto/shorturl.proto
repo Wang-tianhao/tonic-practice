@@ -1,0 +1,25 @@
+syntax = "proto3";
+package shorturl;
+
+service Greeter {
+    rpc GetOriginalURL (GetOriginalRequest) returns (GetOriginalReply);
+    rpc ShortenURL(ShortURLRequest) returns (ShortURLReply);
+
+}
+
+message GetOriginalRequest {
+    // Request message contains the short url;
+    string shortURL = 1;
+}
+
+message GetOriginalReply {
+    string originalURL = 1;
+}
+
+message ShortURLRequest {
+    string originalURL = 1;
+}
+
+message ShortURLReply {
+    string shortURL = 1;
+}

@@ -14,11 +14,11 @@ name = "helloworld-client"
 path = "src/client.rs"
 
 [dependencies]
-tonic = "0.10"
+tonic = "0.11"
 prost = "0.12"
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread","sync", "time"] }
 tokio-stream = "0.1"
-
+anyhow = "1.0.79"
 async-stream = "0.3.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -27,4 +27,4 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [build-dependencies]
-tonic-build = "0.10"
+tonic-build = "0.11"

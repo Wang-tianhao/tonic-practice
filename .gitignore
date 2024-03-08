@@ -1,1 +1,7 @@
 /target
+target
+
+.env
+
+Dockerfile.temp
+src/prisma.rs

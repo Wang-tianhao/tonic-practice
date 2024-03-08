@@ -1,0 +1,16 @@
+{
+  "rust-analyzer.linkedProjects": [
+    "./prisma-cli/Cargo.toml"
+  ],
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "server": "192.168.60.11",
+      "port": 5432,
+      "driver": "PostgreSQL",
+      "name": "Local",
+      "database": "shorturl",
+      "username": "postgres"
+    }
+  ]
+}

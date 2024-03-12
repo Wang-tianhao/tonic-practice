@@ -1,6 +1,10 @@
 {
   "rust-analyzer.linkedProjects": [
-    "./prisma-cli/Cargo.toml"
+    "./prisma-cli/Cargo.toml",
+    "./Cargo.toml",
+    "./Cargo.toml",
+    "./Cargo.toml",
+    "./Cargo.toml"
   ],
   "sqltools.connections": [
     {

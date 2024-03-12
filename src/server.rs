@@ -1,18 +1,23 @@
+use anyhow::Result;
+use hello_world::greeter_server::{Greeter, GreeterServer};
+use hello_world::{Feature, HelloReply, HelloRequest, Point, Rectangle, RouteNote, RouteSummary};
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use std::pin::Pin;
 use std::sync::Arc;
-use std::time::Instant;
-use std::hash::{Hasher, Hash};
+use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 use tokio_stream::{wrappers::ReceiverStream, Stream, StreamExt};
 use tonic::{transport::Server, Request, Response, Status};
+// use tower::{Layer, Service};
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use hello_world::greeter_server::{Greeter, GreeterServer};
-use hello_world::{Feature, HelloReply, HelloRequest, Point, Rectangle, RouteNote, RouteSummary};
+use middleware::{intercept, MyMiddlewareLayer};
 
 mod data;
+pub mod middleware;
+
 pub mod hello_world {
     tonic::include_proto!("helloworld"); // The string specified here must match the proto package name
 }
@@ -194,7 +199,7 @@ fn calc_distance(p1: &Point, p2: &Point) -> i32 {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<()> {
     let addr = "[::1]:50051".parse()?;
     let greeter = MyGreeter {
         features: Arc::new(data::load()),
@@ -203,7 +208,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(tracing_subscriber::EnvFilter::new("info"))
         .with(tracing_subscriber::fmt::layer())
         .init();
+    let layer = tower::ServiceBuilder::new()
+        .timeout(Duration::from_secs(30))
+        .layer(MyMiddlewareLayer::default())
+        .layer(tonic::service::interceptor(intercept))
+        .into_inner();
     Server::builder()
+        .layer(layer)
         .add_service(GreeterServer::new(greeter))
         .serve(addr)
         .await?;

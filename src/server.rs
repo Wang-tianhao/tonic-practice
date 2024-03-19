@@ -1,3 +1,7 @@
+use self::{
+    config::{app_config::AppConfig, AppContext},
+    prisma::PrismaClient,
+};
 use anyhow::Result;
 use hello_world::greeter_server::{Greeter, GreeterServer};
 use hello_world::{Feature, HelloReply, HelloRequest, Point, Rectangle, RouteNote, RouteSummary};
@@ -200,6 +204,10 @@ fn calc_distance(p1: &Point, p2: &Point) -> i32 {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let config = AppConfig::init();
+    let app_context = AppContext {
+        config: Arc::new(config.clone()),
+    };
     let addr = "[::1]:50051".parse()?;
     let greeter = MyGreeter {
         features: Arc::new(data::load()),

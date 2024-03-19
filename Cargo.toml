@@ -60,6 +60,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.10" }
 tower = "0.4.13"
 hyper = "1.2.0"
+jsonwebtoken = "9.1.0"
 
 [build-dependencies]
 tonic-build = "0.11"

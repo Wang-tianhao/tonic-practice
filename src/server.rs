@@ -1,10 +1,10 @@
-use self::{
-    config::{app_config::AppConfig, AppContext},
-    prisma::PrismaClient,
-};
 use anyhow::Result;
 use hello_world::greeter_server::{Greeter, GreeterServer};
 use hello_world::{Feature, HelloReply, HelloRequest, Point, Rectangle, RouteNote, RouteSummary};
+use helloworld_tonic::{
+    config::{app_config::AppConfig, AppContext},
+    prisma::PrismaClient,
+};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::pin::Pin;
@@ -20,7 +20,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use middleware::{intercept, MyMiddlewareLayer};
 
 mod data;
-pub mod middleware;
+mod middleware;
 
 pub mod hello_world {
     tonic::include_proto!("helloworld"); // The string specified here must match the proto package name
@@ -204,16 +204,18 @@ fn calc_distance(p1: &Point, p2: &Point) -> i32 {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let config = AppConfig::init();
-    let app_context = AppContext {
-        config: Arc::new(config.clone()),
-    };
+    let config: AppConfig = AppConfig::init();
+    //*  App Context if needed
+    // let app_context = AppContext {
+    //     config: Arc::new(config.clone()),
+    // };
     let addr = "[::1]:50051".parse()?;
+    let prisma_client = Arc::new(PrismaClient::_builder().build().await?);
     let greeter = MyGreeter {
         features: Arc::new(data::load()),
     };
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new("info"))
+        .with(tracing_subscriber::EnvFilter::new(&config.log_level))
         .with(tracing_subscriber::fmt::layer())
         .init();
     let layer = tower::ServiceBuilder::new()

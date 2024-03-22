@@ -10,10 +10,17 @@ datasource db {
 }
 
 model Shorturl {
-  id        Int       @id @default(autoincrement())
-  shortUrl     String    @unique
-  originalUrl  String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id          Int       @id @default(autoincrement())
+  shortUrl    String    @unique
+  originalUrl String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model Location {
+  id        Int    @id @default(autoincrement())
+  name      String
+  latitude  Int
+  longitude Int
 }

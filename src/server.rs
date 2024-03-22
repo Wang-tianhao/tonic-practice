@@ -26,9 +26,10 @@ pub mod hello_world {
     tonic::include_proto!("helloworld"); // The string specified here must match the proto package name
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct MyGreeter {
     features: Arc<Vec<Feature>>,
+    prisma: Arc<PrismaClient>
 }
 impl Hash for Point {
     fn hash<H>(&self, state: &mut H)
@@ -205,7 +206,9 @@ fn calc_distance(p1: &Point, p2: &Point) -> i32 {
 #[tokio::main]
 async fn main() -> Result<()> {
     let config: AppConfig = AppConfig::init();
-    //*  App Context if needed
+    // tokio::spawn( async{data::seed();});
+    data::seed().await;
+     //*  App Context if needed
     // let app_context = AppContext {
     //     config: Arc::new(config.clone()),
     // };
@@ -213,6 +216,7 @@ async fn main() -> Result<()> {
     let prisma_client = Arc::new(PrismaClient::_builder().build().await?);
     let greeter = MyGreeter {
         features: Arc::new(data::load()),
+        prisma: prisma_client
     };
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(&config.log_level))

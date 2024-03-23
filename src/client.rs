@@ -13,7 +13,7 @@ pub mod hello_world {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let mut client = GreeterClient::connect("http://[::1]:50051").await?;
-    run_route_chat(&mut client).await?;
+    // run_route_chat(&mut client).await?;
     // run_record_route(&mut client).await?;
     // let request = tonic::Request::new(Point {
     //     latitude: 409146138,

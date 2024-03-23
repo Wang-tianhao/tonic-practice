@@ -1,10 +1,12 @@
 use anyhow::Result;
 use hello_world::greeter_server::{Greeter, GreeterServer};
 use hello_world::{Feature, HelloReply, HelloRequest, Point, Rectangle, RouteNote, RouteSummary};
+// use helloworld_tonic::prisma::location::{self, latitude, longitude};
 use helloworld_tonic::{
     config::{app_config::AppConfig, AppContext},
     prisma::PrismaClient,
 };
+
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::pin::Pin;
@@ -20,6 +22,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use middleware::{intercept, MyMiddlewareLayer};
 
 mod data;
+mod domain;
 mod middleware;
 
 pub mod hello_world {
@@ -29,7 +32,7 @@ pub mod hello_world {
 #[derive(Debug)]
 pub struct MyGreeter {
     features: Arc<Vec<Feature>>,
-    prisma: Arc<PrismaClient>
+    prisma: Arc<PrismaClient>,
 }
 impl Hash for Point {
     fn hash<H>(&self, state: &mut H)
@@ -65,13 +68,29 @@ impl Greeter for MyGreeter {
         info!("ListFeatures = {:?}", request);
 
         let (tx, rx) = mpsc::channel(4);
-        let features = self.features.clone();
+        // let features = self.features.clone();
+        let features = self
+            .prisma
+            .location()
+            .find_many(vec![])
+            .exec()
+            .await
+            .unwrap();
 
         tokio::spawn(async move {
             for feature in &features[..] {
-                if in_range(feature.location.as_ref().unwrap(), request.get_ref()) {
+                let location = Point {
+                    latitude: feature.latitude,
+                    longitude: feature.longitude,
+                };
+                if in_range(&location, request.get_ref()) {
                     info!("  => send {:?}", feature);
-                    tx.send(Ok(feature.clone())).await.unwrap();
+                    tx.send(Ok(Feature {
+                        name: feature.name.clone(),
+                        location: Some(location),
+                    }))
+                    .await
+                    .unwrap();
                 }
             }
 
@@ -206,9 +225,7 @@ fn calc_distance(p1: &Point, p2: &Point) -> i32 {
 #[tokio::main]
 async fn main() -> Result<()> {
     let config: AppConfig = AppConfig::init();
-    // tokio::spawn( async{data::seed();});
-    data::seed().await;
-     //*  App Context if needed
+    //*  App Context if needed
     // let app_context = AppContext {
     //     config: Arc::new(config.clone()),
     // };
@@ -216,7 +233,7 @@ async fn main() -> Result<()> {
     let prisma_client = Arc::new(PrismaClient::_builder().build().await?);
     let greeter = MyGreeter {
         features: Arc::new(data::load()),
-        prisma: prisma_client
+        prisma: prisma_client,
     };
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(&config.log_level))

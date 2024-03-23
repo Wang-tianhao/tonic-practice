@@ -5,6 +5,11 @@
     "./Cargo.toml",
     "./Cargo.toml",
     "./Cargo.toml",
+    "./Cargo.toml",
+    "./Cargo.toml",
+    "./Cargo.toml",
+    "./Cargo.toml",
+    "./Cargo.toml",
     "./Cargo.toml"
   ],
   "sqltools.connections": [
@@ -17,5 +22,6 @@
       "database": "shorturl",
       "username": "postgres"
     }
-  ]
+  ],
+  "rust-analyzer.showUnlinkedFileNotification": false
 }

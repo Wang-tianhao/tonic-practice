@@ -4,7 +4,6 @@ use hello_world::{Feature, HelloReply, HelloRequest, Point, Rectangle, RouteNote
 // use helloworld_tonic::prisma::location::{self, latitude, longitude};
 use helloworld_tonic::{config::app_config::AppConfig, prisma::PrismaClient};
 
-use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::pin::Pin;
@@ -146,9 +145,13 @@ impl Greeter for MyGreeter {
 
             // Increment the point count
             summary.point_count += 1;
-
+            let mut features = self.features.lock().await.to_vec();
+            if features.len() == 0 {
+                self.get_features().await;
+                features = self.features.lock().await.to_vec();
+            }
             // Find features
-            for feature in self.features.lock().await.to_vec() {
+            for feature in features.iter() {
                 if feature.location.as_ref() == Some(&point) {
                     summary.feature_count += 1;
                 }

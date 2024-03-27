@@ -2,17 +2,15 @@ use anyhow::Result;
 use hello_world::greeter_server::{Greeter, GreeterServer};
 use hello_world::{Feature, HelloReply, HelloRequest, Point, Rectangle, RouteNote, RouteSummary};
 // use helloworld_tonic::prisma::location::{self, latitude, longitude};
-use helloworld_tonic::{
-    config::{app_config::AppConfig, AppContext},
-    prisma::PrismaClient,
-};
+use helloworld_tonic::{config::app_config::AppConfig, prisma::PrismaClient};
 
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Mutex};
 use tokio_stream::{wrappers::ReceiverStream, Stream, StreamExt};
 use tonic::{transport::Server, Request, Response, Status};
 // use tower::{Layer, Service};
@@ -21,9 +19,12 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use middleware::{intercept, MyMiddlewareLayer};
 
+use utils::{calc_distance, in_range};
+
 mod data;
 mod domain;
 mod middleware;
+mod utils;
 
 pub mod hello_world {
     tonic::include_proto!("helloworld"); // The string specified here must match the proto package name
@@ -31,9 +32,11 @@ pub mod hello_world {
 
 #[derive(Debug)]
 pub struct MyGreeter {
-    features: Arc<Vec<Feature>>,
+    // features: Arc<Vec<Feature>>,
     prisma: Arc<PrismaClient>,
+    features: Arc<Mutex<Vec<Feature>>>,
 }
+
 impl Hash for Point {
     fn hash<H>(&self, state: &mut H)
     where
@@ -45,6 +48,28 @@ impl Hash for Point {
 }
 impl Eq for Point {}
 
+impl MyGreeter {
+    async fn get_features(&self) {
+        let features = self
+            .prisma
+            .location()
+            .find_many(vec![])
+            .exec()
+            .await
+            .unwrap();
+        let return_feature: Vec<Feature> = features
+            .into_iter()
+            .map(|feature| Feature {
+                name: feature.name,
+                location: Some(Point {
+                    longitude: feature.longitude,
+                    latitude: feature.latitude,
+                }),
+            })
+            .collect();
+        *self.features.lock().await = return_feature;
+    }
+}
 #[tonic::async_trait]
 impl Greeter for MyGreeter {
     async fn say_hello(
@@ -69,28 +94,16 @@ impl Greeter for MyGreeter {
 
         let (tx, rx) = mpsc::channel(4);
         // let features = self.features.clone();
-        let features = self
-            .prisma
-            .location()
-            .find_many(vec![])
-            .exec()
-            .await
-            .unwrap();
-
+        let mut features = self.features.lock().await.to_vec();
+        if features.len() == 0 {
+            self.get_features().await;
+            features = self.features.lock().await.to_vec();
+        }
         tokio::spawn(async move {
-            for feature in &features[..] {
-                let location = Point {
-                    latitude: feature.latitude,
-                    longitude: feature.longitude,
-                };
-                if in_range(&location, request.get_ref()) {
+            for feature in features.into_iter() {
+                if in_range(&feature.location.clone().unwrap(), request.get_ref()) {
                     info!("  => send {:?}", feature);
-                    tx.send(Ok(Feature {
-                        name: feature.name.clone(),
-                        location: Some(location),
-                    }))
-                    .await
-                    .unwrap();
+                    let _ = tx.send(Ok(feature)).await;
                 }
             }
 
@@ -101,10 +114,14 @@ impl Greeter for MyGreeter {
     }
     async fn get_feature(&self, request: Request<Point>) -> Result<Response<Feature>, Status> {
         info!("GetFeature = {:?}", request);
-
-        for feature in &self.features[..] {
-            if feature.location.as_ref() == Some(request.get_ref()) {
-                return Ok(Response::new(feature.clone()));
+        let mut features = self.features.lock().await.to_vec();
+        if features.len() == 0 {
+            self.get_features().await;
+            features = self.features.lock().await.to_vec();
+        }
+        for feature in features.into_iter() {
+            if &feature.location.clone().unwrap() == request.get_ref() {
+                return Ok(Response::new(feature));
             }
         }
 
@@ -131,7 +148,7 @@ impl Greeter for MyGreeter {
             summary.point_count += 1;
 
             // Find features
-            for feature in self.features.iter() {
+            for feature in self.features.lock().await.to_vec() {
                 if feature.location.as_ref() == Some(&point) {
                     summary.feature_count += 1;
                 }
@@ -180,48 +197,6 @@ impl Greeter for MyGreeter {
     }
 }
 
-fn in_range(point: &Point, rect: &Rectangle) -> bool {
-    use std::cmp;
-
-    let lo = rect.lo.as_ref().unwrap();
-    let hi = rect.hi.as_ref().unwrap();
-
-    let left = cmp::min(lo.longitude, hi.longitude);
-    let right = cmp::max(lo.longitude, hi.longitude);
-    let top = cmp::max(lo.latitude, hi.latitude);
-    let bottom = cmp::min(lo.latitude, hi.latitude);
-
-    point.longitude >= left
-        && point.longitude <= right
-        && point.latitude >= bottom
-        && point.latitude <= top
-}
-
-/// Calculates the distance between two points using the "haversine" formula.
-/// This code was taken from http://www.movable-type.co.uk/scripts/latlong.html.
-fn calc_distance(p1: &Point, p2: &Point) -> i32 {
-    const CORD_FACTOR: f64 = 1e7;
-    const R: f64 = 6_371_000.0; // meters
-
-    let lat1 = p1.latitude as f64 / CORD_FACTOR;
-    let lat2 = p2.latitude as f64 / CORD_FACTOR;
-    let lng1 = p1.longitude as f64 / CORD_FACTOR;
-    let lng2 = p2.longitude as f64 / CORD_FACTOR;
-
-    let lat_rad1 = lat1.to_radians();
-    let lat_rad2 = lat2.to_radians();
-
-    let delta_lat = (lat2 - lat1).to_radians();
-    let delta_lng = (lng2 - lng1).to_radians();
-
-    let a = (delta_lat / 2f64).sin() * (delta_lat / 2f64).sin()
-        + (lat_rad1).cos() * (lat_rad2).cos() * (delta_lng / 2f64).sin() * (delta_lng / 2f64).sin();
-
-    let c = 2f64 * a.sqrt().atan2((1f64 - a).sqrt());
-
-    (R * c) as i32
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     let config: AppConfig = AppConfig::init();
@@ -232,7 +207,8 @@ async fn main() -> Result<()> {
     let addr = "[::1]:50051".parse()?;
     let prisma_client = Arc::new(PrismaClient::_builder().build().await?);
     let greeter = MyGreeter {
-        features: Arc::new(data::load()),
+        // features: Arc::new(data::load()),
+        features: Arc::new(Mutex::new(vec![])),
         prisma: prisma_client,
     };
     tracing_subscriber::registry()

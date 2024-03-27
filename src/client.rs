@@ -15,16 +15,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut client = GreeterClient::connect("http://[::1]:50051").await?;
     // run_route_chat(&mut client).await?;
     // run_record_route(&mut client).await?;
-    // let request = tonic::Request::new(Point {
-    //     latitude: 409146138,
-    //     longitude: -746188906,
-    // });
+    let request = tonic::Request::new(Point {
+        latitude: 409146138,
+        longitude: -746188906,
+    });
 
-    // let response = client.get_feature(request).await?;
+    let response = client.get_feature(request).await?;
 
-    // println!("RESPONSE={:?}", response);
-    // println!("Point{:?}", response.into_inner().location.unwrap());
-    print_features(&mut client).await?;
+    println!("RESPONSE={:?}", response);
+    println!("Point{:?}", response.into_inner().location.unwrap());
+    // print_features(&mut client).await?;
     Ok(())
 }
 
